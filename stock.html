@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bin Lyu's HW8</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <!-- multiple CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js">
+    </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-sanitize.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>
+    
+    <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
+    
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script>
+    var app = angular.module('searchStock', ['ngSanitize']);
+    app.service('ResultDisplayer', function() {
+      this.create_detail_table = function(responseData) {
+        // process response and return a table html string
+        var arrowUrl = (parseFloat(responseData.change) >= 0) ? "http://cs-server.usc.edu:45678/hw/hw8/images/Up.png" : "http://cs-server.usc.edu:45678/hw/hw8/images/Down.png";
+        var colorClass = (parseFloat(responseData.change) >= 0) ? "green" : "red";
+        var daysRange = "Day's Range";
+        var detail_table = "";
+        // TODO close and last price icon position, facebook button disable...
+
+        detail_table += "<table class='table table-striped'><tbody>";
+        detail_table += "<tr><th>Stock Ticker Symbol" + "</th><td>" + responseData.symbol + "</td></tr>";
+        detail_table += "<tr><th>Change (Change Percent)" + "</th><td class='" + colorClass + "' >" + responseData.change + " (" + responseData.change_percent + ")" + "<img src='" + arrowUrl + "'/>" + "</td></tr>";
+        detail_table += "<tr><th>Timestamp" + "</th><td>" + responseData.timestamp + "</td></tr>";
+        detail_table += "<tr><th>Open" + "</th><td>" + responseData.open + "</td></tr>";
+        detail_table += "<tr><th>Previous Close" + "</th><td>" + responseData.prev_close + "</td></tr>";
+        detail_table += "<tr><th>" + daysRange + "</th><td>" + responseData.range + "</td></tr>";
+        detail_table += "<tr><th>Volume" + "</th><td>" + responseData.volume + "</td></tr>";
+        detail_table += "</tbody></table>";
+        return detail_table;
+      }
+      
+      this.create_indicator_charts = function(indicatorData, indicatorType) {
+        // based on indicator type, extract data and use highcharts to create charts
+        // TODO tickinterval
+        var containerID = indicatorType + "-chart-container";   
+        var title = {
+          text: indicatorData.title
+        };
+        var subtitle = {
+          text: "<a class='indicator' href='https://www.alphavantage.co/' target='_blank'>Source: Alpha Vantage</a>",
+          useHTML: true,
+        };
+        var xAxis = {
+          tickInterval: 5,
+          categories: indicatorData.xValue,
+          labels: {
+            rotation: -45,
+          }
+        };
+        var yAxis = {};
+        if(indicatorType != "Price") {
+          yAxis.title = {
+            text: indicatorType,
+          };
+        } else {
+          yAxis = [];
+          yAxisSub1 = {
+            title: {
+              text: "Stock Price",
+            },
+          };
+          yAxisSub2 = {
+            title: {
+              text: "Volume",
+            },
+            opposite: true,
+          };
+          yAxis.push(yAxisSub1);
+          yAxis.push(yAxisSub2);
+        }
+        var series = [];
+        if(indicatorType == "Price") {
+          var seriesDataPrice = {
+            name: indicatorData.symbol,
+            color: "rgba(0,0,220,0.8)",
+            fillColor: "rgba(0,0,255,0.2)",
+            data: indicatorData.yValue.price,
+            tooltip: {
+              valueDecimals: 2,
+            },
+            type: "area", 
+          };
+          var seriesDataVolume = {
+            name: indicatorData.symbol + " Volume",
+            color: "red",
+            data: indicatorData.yValue.volume,
+            type: "column",
+            yAxis: 1,
+          };
+          series.push(seriesDataPrice);
+          series.push(seriesDataVolume);
+        } else if(indicatorType == "STOCH") {
+          var seriesDataK = {
+            name: indicatorData.symbol + " SlowK",
+            color: "DodgerBlue",
+            data: indicatorData.yValue.SlowK,
+          };
+          var seriesDataD = {
+            name: indicatorData.symbol + " SlowD",
+            color: "black",
+            data: indicatorData.yValue.SlowD,
+          };
+          series.push(seriesDataD);
+          series.push(seriesDataK);     
+        } else if(indicatorType == "MACD") {
+          var seriesDataMACD = {
+            name: indicatorData.symbol + " MACD",
+            color: "DodgerBlue",
+            data: indicatorData.yValue.MACD,
+          };
+          var seriesDataHist = {
+            name: indicatorData.symbol + " MACD_Hist",
+            color: "black",
+            data: indicatorData.yValue.MACD_Hist,
+          };
+          var seriesDataSig = {
+            name: indicatorData.symbol + " MACD_Signal",
+            color: "orange",
+            data: indicatorData.yValue.MACD_Signal,
+          };
+          series.push(seriesDataMACD);
+          series.push(seriesDataHist);
+          series.push(seriesDataSig);
+        } else if(indicatorType == "BBANDS") {
+          var seriesDataLow = {
+            name: indicatorData.symbol + " Real Lower Band",
+            color: "DodgerBlue",
+            data: indicatorData.yValue['Real Lower Band'],
+          };
+          var seriesDataMid = {
+            name: indicatorData.symbol + " Real Middle Band",
+            color: "black",
+            data: indicatorData.yValue['Real Middle Band'],
+          };
+          var seriesDataUp = {
+            name: indicatorData.symbol + " Real Upper Band",
+            color: "orange",
+            data: indicatorData.yValue['Real Upper Band'],
+          };
+          series.push(seriesDataMid);
+          series.push(seriesDataUp);
+          series.push(seriesDataLow);
+        } else {
+          var seriesData = {
+            name: indicatorData.symbol,
+            color: "DodgerBlue",
+            data: indicatorData.yValue[indicatorType],
+          };
+          series.push(seriesData);
+        }
+        
+        var options = {
+          chart: {
+            zoomType: 'x'
+          },
+          title: title,
+          subtitle: subtitle,
+          yAxis: yAxis,
+          xAxis: xAxis,
+          series: series,
+        };
+        
+        Highcharts.chart(containerID, options);
+      }
+      
+      this.create_history_chart = function(historyData) {
+        var containerID = 'history-chart-container';
+        var title = {
+          text: historyData.title,
+        };
+        var subtitle = {
+          text: "<a class='indicator' href='https://www.alphavantage.co/' target='_blank'>Source: Alpha Vantage</a>",
+          useHTML: true,
+        };
+        var yAxis = {
+          title: {
+            text: "Stock Value",
+          }
+        };
+        var seriesData = {
+          type: "area",
+          data: historyData.data,
+          name: historyData.symbol,
+        }
+        var rangeSelector = {
+          selected: 0,
+          buttons: [{
+              type: 'week',
+              count: 1,
+              text: '1w'
+          }, {
+              type: 'month',
+              count: 1,
+              text: '1m'
+          }, {
+              type: 'month',
+              count: 3,
+              text: '3m'
+          }, {
+              type: 'month',
+              count: 6,
+              text: '6m'
+          }, {
+              type: 'ytd',
+              text: 'YTD'
+          }, {
+              type: 'year',
+              count: 1,
+              text: '1y'
+          }, {
+              type: 'all',
+              text: 'All'
+          }],
+        }
+        
+        var options = {
+          yAxis: yAxis,
+          title: title,
+          subtitle: subtitle,
+          series: [seriesData],
+          rangeSelector: rangeSelector,
+          
+        };
+        
+        Highcharts.stockChart(containerID, options);
+      }
+    });
+    app.controller('searchCtrl', function($scope, $http, ResultDisplayer){
+      $scope.search = {
+        symbolInput : "",
+        isValid : true,
+        isTouched: false,
+        isSearched: false,
+      };
+      $scope.progress = {
+        isDetailsInProg: false,
+        isIndicPriceInProg: false,
+        isIndicSMAInProg: false,
+        isIndicEMAInProg: false,
+        isIndicSTOCHInProg: false,
+        isIndicRSIInProg: false,
+        isIndicADXInProg: false,
+        isIndicCCIInProg: false,
+        isIndicBBANDSInProg: false,
+        isIndicMACDInProg: false,
+        isHistoryInProg: false,
+        isNewsInProg: false
+      };
+      $scope.ready = {
+        isDetailsReady: false,
+        isIndicPriceReady: false,
+        isIndicSMAReady: false,
+        isIndicEMAReady: false,
+        isIndicSTOCHReady: false,
+        isIndicRSIReady: false,
+        isIndicADXReady: false,
+        isIndicCCIReady: false,
+        isIndicBBANDSReady: false,
+        isIndicMACDReady: false,
+        isHistoryReady: false,
+        isNewsReady: false
+      };
+      $scope.error = {
+        isDetailsError: false,
+        isIndicPriceError: false,
+        isIndicSMAError: false,
+        isIndicEMAError: false,
+        isIndicSTOCHError: false,
+        isIndicRSIError: false,
+        isIndicADXError: false,
+        isIndicCCIError: false,
+        isIndicBBANDSError: false,
+        isIndicMACDError: false,
+        isHistoryError: false,
+        isNewsError: false
+      };
+      
+      $scope.table = {
+        detail_table: ""
+      };
+      $scope.view = {
+        show_favorite: true,
+      }
+      $scope.newsList = [];
+      // function to validate user input every time the key is down
+      $scope.validate_input = function() {
+        $scope.search.isTouched = true;
+        if(!$scope.search.symbolInput || $scope.search.symbolInput.trim() == "") {
+          $scope.search.isValid = false;
+        } else {
+          $scope.search.isValid = true;
+        }
+        
+      }
+      // function to submit the user input symbol to back-end and 
+      $scope.submit = function() {
+        $scope.search.isSearched = true;
+        $scope.view.show_favorite = false;
+        // slide two panels
+        var symbol = $scope.search.symbolInput;
+        // make table and charts invisible, and error disappear
+        for(var key in $scope.ready) {
+          $scope.ready[key] = false;
+        }
+        for(var key in $scope.error) {
+          $scope.error[key] = false;
+        }
+        // make progress bar visible
+        for(var key in $scope.progress) {
+          $scope.progress[key] = true;
+        }
+        // current stock detail ajax
+        $http.get("/?symbol=" +$scope.search.symbolInput + "&type=stock_detail").then(function(response){
+          var responseJson = response.data;
+          $scope.progress.isDetailsInProg = false;
+          if(responseJson.status_code == 200) {
+            var responseData = responseJson.data;
+            // check if data is null, if so display error
+            if(responseData == null) {
+              $scope.error.isDetailsError = true;
+              return ;
+            } else {
+              $scope.ready.isDetailsReady = true;
+            }
+            $scope.table.detail_table = ResultDisplayer.create_detail_table(responseData);
+          } else {
+            // server to api error
+            $scope.error.isDetailsError = true;
+          }
+        }, function(error_response) {
+          // client to back-end error
+          $scope.progress.isDetailsInProg = false;
+          $scope.error.isDetailsError = true;
+        });
+        // indicator ajax
+        var indicators = ['Price', 'EMA', 'SMA', 'STOCH', 'RSI', 'ADX', 'CCI', 'BBANDS', 'MACD'];
+        for(var index in indicators) {
+          var indicator = indicators[index];
+          var config = {
+            params: {
+              symbol: $scope.search.symbolInput,
+              type: "indicator",
+              option: indicator
+            }
+          }
+          $http.get("/", config).then(function(response) {
+            // fetch indicator type from config, preventing pollution
+            var responseJson = response.data;
+            var indicator = response.config.params.option;
+            var errorKey = "isIndic" + indicator + "Error";
+            var inProgressKey = "isIndic" + indicator + "InProg";
+            var readyKey = "isIndic" + indicator + "Ready";
+            $scope.progress[inProgressKey] = false;
+            if(responseJson.status_code == 200) {
+              var responseData = responseJson.data;
+              if(responseData == null) {
+                $scope.error[errorKey] = true;
+                return;
+              } else {
+                $scope.ready[readyKey] = true;
+                ResultDisplayer.create_indicator_charts(responseData, indicator);
+              }
+            } else {
+              // server to api error
+              $scope.error[errorKey] = true;
+            }
+          }, function(error_response) {
+            // client to back-end error
+            var errorKey = "isIndic" + indicator + "Error";
+            var inProgressKey = "isIndic" + indicator + "InProg";
+            $scope.progress[inProgressKey] = false;
+            $scope.error[errorKey] = true;
+          });
+        }
+        // news feed ajax
+        var newsConfig = {
+          params: {
+            symbol: $scope.search.symbolInput,
+            type: "news"
+          }
+        }
+        $http.get("/", newsConfig).then(function(response){
+          $scope.progress.isNewsInProg = false;
+          var responseJson = response.data;
+          if(responseJson.status_code == 200) {
+            $scope.ready.isNewsReady = true;
+            $scope.newsList = responseJson.data;
+          } else {
+            // server to api error
+            $scope.error.isNewsError = true;
+          }
+        }, function(response) {
+          // client to back-end error 
+          $scope.progress.isNewsInProg = false;
+          $scope.error.isNewsError = true;
+        });
+        // stock history ajax
+        var historyConfig = {
+          params: {
+            symbol: $scope.search.symbolInput,
+            type: "stock_history",
+          }
+        };
+        $http.get("/", historyConfig).then(function(response) {
+          var responseJson = response.data;
+          $scope.progress.isHistoryInProg = false;
+          if(responseJson.status_code == 200) {
+            var responseData = responseJson.data;
+            if(responseData == null) {
+              $scope.error.isHistoryError = true;
+              return ;
+            } else {
+              $scope.ready.isHistoryReady = true;
+              ResultDisplayer.create_history_chart(responseData);
+            }
+          } else {
+            // server to api error
+            $scope.error.isHistoryError = true;
+          }
+          
+        }, function(response) {
+          // client to back-end error
+          $scope.progress.isHistoryInProg = false;
+          $scope.error.isHistoryError = true;
+        });
+      }
+      // function to clear user input and slide out detail panel and 
+      // slide in favorite panel 
+      $scope.clear = function(){ 
+        $scope.search.isSearched = false;
+        $scope.view.show_favorite = true;
+      }
+    });
+      
+    
+  </script>
+    
+    
+  </head>
+  <body>
+    <div class="container" ng-app="searchStock" ng-controller="searchCtrl">
+      <!-- #1 panel with search box -->
+      <div class="panel panel-default">
+        <div class="panel-body">
+          <!-- caption row -->
+          <div class="row">
+            <div class="col-xs-12 text-center h3">
+              Stock Market Search
+            </div>
+          </div>
+          <!-- search row -->
+          <div class="row">
+              <div class="col-sm-3 h5" id="enter-symbol-prompt">
+                  Enter Stock Ticker Symbol:
+              </div>
+              <div class="col-sm-9">
+                <div class="row" >
+                  <div class="col-sm-8" ng-class="{'has-error': !search.isValid}">
+                    <input name="inputSymbol" type="text" class="form-control" id="symbol" placeholder="e.g. AAPL" ng-model="search.symbolInput" ng-change="validate_input()" ng-trim=false />
+                    <div>
+                      <span ng-show="!search.isValid">Please enter a stock ticker symbol.</span>
+                    </div>
+                  </div>
+                  <div class="col-sm-4">
+                    <button class="btn btn-primary" ng-click="submit()" ng-disabled="!search.isTouched || !search.isValid">
+                      <span class="glyphicon glyphicon-search" aria-hidden="true"></span> Get Quote
+                    </button>
+                    <button class="btn btn-default" ng-click="clear()">
+                      <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- horizontal line -->
+      <div class="row">
+        <div class="col-xs-12">
+          <hr />
+        </div>
+      </div>
+      <!-- #2.1 favorite stock panel -->
+      <div class="panel panel-default">
+        <div class="panel-body">
+          <div class="panel panel-default" id="favorite-panel" ng-hide="!view.show_favorite">
+            <div class="panel-heading text-left">
+              <button type="button" class="btn btn-default btn-lg pull-right" ng-disabled="!search.isSearched" ng-click="view.show_favorite=!view.show_favorite">
+                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+              </button>
+              <h4>Favorite List</h4>
+              
+            </div>
+
+          </div>
+        <!-- #2.2 stock detail panel -->
+        <!-- inner stock with 3 pills -->
+          <div class="panel panel-default" id="detail-panel" ng-hide="view.show_favorite">
+            <div class="panel-heading text-center">
+              <button type="button" class="btn btn-default btn-lg pull-left" ng-click="view.show_favorite=!view.show_favorite">
+                <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+              </button>
+              <h4>Stock Details</h4>
+            </div>
+            <div class="panel-body">
+              <ul class="nav nav-pills">
+                <li class="active">
+                  <a data-toggle="pill" href="#stock">
+                    <span class="glyphicon glyphicon-dashboard" aria-hidden="true"></span> Current Stock
+                  </a></li>
+                <li><a data-toggle="pill" href="#charts">
+                  <span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Historical Charts</a></li>
+                <li><a data-toggle="pill" href="#news">
+                  <span class="glyphicon glyphicon-link" aria-hidden="true"></span> News Feeds</a></li>
+              </ul>
+              <div class="row">
+                <div class="col-xs-12">
+                  <hr id="hr-in-detail"/>
+                </div>
+              </div>
+              <div class="tab-content">
+                <!-- current stock section -->
+                <div id="stock" class="tab-pane fade in active">
+                  <div class="row">
+                    <!-- stock detail with table-->
+                    <div class="col-sm-6">
+                      <div class="row">
+                        <div class="col-xs-8 h4">
+                          Stock Details
+                        </div>
+                        <div class="col-xs-4">
+                          <button type="button" class="btn btn-default btn-lg" ng-disabled="!ready.isDetailsReady">
+                            <span class="glyphicon glyphicon-star-empty" aria-hidden="true"></span>
+                          </button>
+                          <button type="button" class="btn btn-default btn-lg" disabled>
+                            <img id="facebook-img" src="http://cs-server.usc.edu:45678/hw/hw8/images/facebook.png"/>
+                          </button>
+                        </div>
+                        <div class="table-container" ng-bind-html="table.detail_table" ng-show="ready.isDetailsReady">
+                        
+                        </div>
+<!--
+                        <table class="table table-striped">
+                          <tbody>
+                            <tr>
+                              <th>Firstname</th>
+                              <td>John</td>
+                              <td>Doe</td>
+                              <td>john@example.com</td>
+                            </tr>
+                            <tr>
+                              <td>Mary</td>
+                              <td>Moe</td>
+                              <td>mary@example.com</td>
+                            </tr>
+                            <tr>
+                              <td>July</td>
+                              <td>Dooley</td>
+                              <td>july@example.com</td>
+                            </tr>
+                          </tbody>
+                        </table>
+-->
+                      </div> 
+                      <div class="progress detail-progress-bar" ng-show="progress.isDetailsInProg">
+                        <div class="progress-bar progress-bar-striped active" role="progressbar"
+                        aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                        </div>
+                      </div>
+                      <div class="alert alert-danger detail-error-msg" ng-show="error.isDetailsError">
+                        Error! Failed to get current stock data.
+                      </div>
+                    </div>
+                    <!-- indicators with chart-->
+                    <div class="col-sm-6">
+                      <ul class="nav nav-tabs">
+                        <li class="active"><a data-toggle="tab" href="#price">Price</a></li>
+                        <li><a data-toggle="tab" href="#sma">SMA</a></li>
+                        <li><a data-toggle="tab" href="#ema">EMA</a></li>
+                        <li><a data-toggle="tab" href="#stoch">STOCH</a></li>
+                        <li><a data-toggle="tab" href="#rsi">RSI</a></li>
+                        <li><a data-toggle="tab" href="#adx">ADX</a></li>
+                        <li><a data-toggle="tab" href="#cci">CCI</a></li>
+                        <li><a data-toggle="tab" href="#bbands">BBANDS</a></li>
+                        <li><a data-toggle="tab" href="#macd">MACD</a></li>
+                      </ul>
+
+                      <div class="tab-content">
+                        <div id="price" class="tab-pane fade in active">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicPriceInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicPriceError">
+                            Error! Failed to get Price data.
+                          </div>
+                          <div id="Price-chart-container" ng-show="ready.isIndicPriceReady"></div>
+                        </div>
+                        <div id="sma" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicSMAInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicSMAError">
+                            Error! Failed to get SMA data.
+                          </div>
+                          <div id="SMA-chart-container" ng-show="ready.isIndicSMAReady"></div>
+                        </div>
+                        <div id="ema" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicEMAInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicEMAError">
+                            Error! Failed to get EMA data.
+                          </div>
+                          <div id="EMA-chart-container" ng-show="ready.isIndicEMAReady"></div>
+                        </div>
+                        <div id="stoch" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicSTOCHInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicSTOCHError">
+                            Error! Failed to get STOCH data.
+                          </div>
+                          <div id="STOCH-chart-container" ng-show="ready.isIndicSTOCHReady"></div>
+                        </div>
+                        <div id="rsi" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicRSIInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicRSIError">
+                            Error! Failed to get RSI data.
+                          </div>
+                          <div id="RSI-chart-container" ng-show="ready.isIndicRSIReady"></div>
+                        </div>
+                        <div id="adx" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicADXInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicADXError">
+                            Error! Failed to get ADX data.
+                          </div>
+                          <div id="ADX-chart-container" ng-show="ready.isIndicADXReady"></div>
+                        </div>
+                        <div id="cci" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicCCIInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicCCIError">
+                            Error! Failed to get CCI data.
+                          </div>
+                          <div id="CCI-chart-container" ng-show="ready.isIndicCCIReady"></div>
+                        </div>
+                        <div id="bbands" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicBBANDSInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicBBANDSError">
+                            Error! Failed to get BBANDS data.
+                          </div>
+                          <div id="BBANDS-chart-container" ng-show="ready.isIndicBBANDSReady"></div>
+                        </div>
+                        <div id="macd" class="tab-pane fade">
+                          <div class="progress indicator-progress-bar" ng-show="progress.isIndicMACDInProg">
+                            <div class="progress-bar progress-bar-striped active" role="progressbar"
+                            aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                            </div>
+                          </div>
+                          <div class="alert alert-danger indicator-error-msg" ng-show="error.isIndicMACDError">
+                            Error! Failed to get MACD data.
+                          </div>
+                          <div id="MACD-chart-container" ng-show="ready.isIndicMACDReady"></div>
+                        </div>
+                        
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- historical data section-->
+                <div id="charts" class="tab-pane fade">
+                  <div class="progress indicator-progress-bar" ng-show="progress.isHistoryInProg">
+                    <div class="progress-bar progress-bar-striped active" role="progressbar"
+                    aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                    </div>
+                  </div>
+                  <div class="alert alert-danger indicator-error-msg" ng-show="error.isHistoryError">
+                     Error! Failed to get historical charts data.
+                  </div>
+                  <div id="history-chart-container" ng-show="ready.isHistoryReady"></div>
+                </div>
+                <!-- news feed section -->
+                <div id="news" class="tab-pane fade">
+                  <div class="progress indicator-progress-bar" ng-show="progress.isNewsInProg">
+                    <div class="progress-bar progress-bar-striped active" role="progressbar"
+                    aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                    </div>
+                  </div>
+                  <div class="alert alert-danger indicator-error-msg" ng-show="error.isNewsError">
+                    Error! Failed to get news feed data.
+                  </div>
+                  <div ng-show="ready.isNewsReady">
+                    <div class="panel panel-default text-left" ng-repeat="news in newsList">
+                      <div class="panel-heading">
+                        <h4 class="news-title"><a target="_blank" ng-href="{{news.link}}">{{news.title}}</a></h4>
+                        <h5 class="news-content">Author: {{news.author}}</h5>
+                        <h5 class="news-content">Date: {{news.date}}</h5>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "Elastic-Beanstalk-Sample-App",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "latest",
+    "moment-timezone": "latest",
+    "request": "latest",
+    "xml2js": "latest",
+    "dateformat": "latest"
+  },
+  "scripts": {
+    "start": "node app.js"
+  }
+}

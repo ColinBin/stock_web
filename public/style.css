@@ -1,0 +1,107 @@
+body {
+  background-image: url("http://cs-server.usc.edu:45678/hw/hw8/images/background.png");
+}
+.panel {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+hr{
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+#hr-in-detail {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.h3  {
+  margin-top: auto;
+  margin-bottom: 10px;
+}
+
+.btn-lg {
+  max-width: 55px;
+  max-height: 45px;
+  line-height: 0;
+}
+
+#facebook-img {
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+}
+
+#enter-symbol-prompt {
+  margin-top:auto;
+}
+
+#enter-symbol-prompt:after {
+  content:"*";
+  color:red;
+}
+
+.indicator-progress-bar {
+  margin-top: 40px;
+}
+.detail-progress-bar {
+  margin-top: 80px;
+  margin-bottom: 60px;
+}
+.indicator-error-msg {
+  margin-top: 40px;
+}
+.detail-error-msg {
+  margin-top: 80px;
+  margin-bottom: 60px;
+}
+.table {
+  width: 95%;
+  margin: auto;
+}
+.table tr {
+  height: 50px;
+}
+.table th {
+  width: 50%;
+}
+.table img {
+  max-height: 20px;
+}
+.green {
+  color: green;
+}
+.red {
+  color: red;
+}
+.table-container {
+  margin-top: 60px;
+}
+.news-title {
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+.news-content {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+#favorite-panel.ng-hide {
+  transform: translateX(100px);
+}
+
+#favorite-panel.ng-hide-add {
+  transition: 1s;
+}
+
+#detail-panel.ng-hide {
+  transform: translateX(-100px);
+}
+
+#detail-panel.ng-hide-add {
+  transition: 1s;
+}
+
+
+
