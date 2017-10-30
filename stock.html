@@ -12,13 +12,13 @@
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-sanitize.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>
-    
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js">
+    </script>    
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
     
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script>
-    var app = angular.module('searchStock', ['ngSanitize']);
+    var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate']);
     app.service('ResultDisplayer', function() {
       this.create_detail_table = function(responseData) {
         // process response and return a table html string
@@ -347,6 +347,8 @@
         $http.get("/?symbol=" +$scope.search.symbolInput + "&type=stock_detail").then(function(response){
           var responseJson = response.data;
           $scope.progress.isDetailsInProg = false;
+          $scope.error.isDetailsError = false;
+          $scope.ready.isDetailsReady = false;
           if(responseJson.status_code == 200) {
             var responseData = responseJson.data;
             // check if data is null, if so display error
@@ -385,6 +387,8 @@
             var inProgressKey = "isIndic" + indicator + "InProg";
             var readyKey = "isIndic" + indicator + "Ready";
             $scope.progress[inProgressKey] = false;
+            $scope.error[errorKey] = false;
+            $scope.ready[readyKey] = false;
             if(responseJson.status_code == 200) {
               var responseData = responseJson.data;
               if(responseData == null) {
@@ -415,6 +419,8 @@
         }
         $http.get("/", newsConfig).then(function(response){
           $scope.progress.isNewsInProg = false;
+          $scope.error.isNewsError = false;
+          $scope.ready.isNewsReady = false;
           var responseJson = response.data;
           if(responseJson.status_code == 200) {
             $scope.ready.isNewsReady = true;
@@ -444,6 +450,7 @@
               $scope.error.isHistoryError = true;
               return ;
             } else {
+              $scope.error.isHistoryError = false;
               $scope.ready.isHistoryReady = true;
               ResultDisplayer.create_history_chart(responseData);
             }
@@ -576,9 +583,9 @@
       </div>
       
       <div class="panel panel-default">
-        <div class="panel-body" class="switch" ng-switch on="view.show_favorite" ng-animate="animate">
+        <div class="panel-body my-panel-parent">
           <!-- #2.1 favorite stock panel -->
-          <div class="panel panel-default" id="favorite-panel" ng-switch-when="true">
+          <div class="panel panel-default my-panel-child" ng-hide="!view.show_favorite">
             <div class="panel-heading text-left">
               <button type="button" class="btn btn-default btn-lg pull-right" ng-disabled="!search.isSearched" ng-click="view.show_favorite=!view.show_favorite">
                 <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
@@ -590,7 +597,7 @@
           </div>
         <!-- #2.2 stock detail panel -->
         <!-- inner stock with 3 pills -->
-          <div class="panel panel-default" id="detail-panel" ng-switch-when="false">
+          <div class="panel panel-default my-panel-child" ng-hide="view.show_favorite">
             <div class="panel-heading text-center">
               <button type="button" class="btn btn-default btn-lg pull-left" ng-click="view.show_favorite=!view.show_favorite">
                 <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
@@ -652,7 +659,7 @@
                           <a data-toggle="tab" href={{tab.href}} ng-click="set_active($index)">{{tab.type}}</a>
                         </li>
                       </ul>
-
+                      <!-- chart content for 9 indicators -->
                       <div class="tab-content">
                         <div id="price" class="tab-pane fade in active">
                           <div class="progress indicator-progress-bar" ng-show="progress.isIndicPriceInProg">
