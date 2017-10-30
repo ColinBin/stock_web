@@ -17,6 +17,7 @@ var alpha_base_url = "https://www.alphavantage.co/query";
 var news_base_url = "https://seekingalpha.com/api/sa/combined/";
 var markit_base_url = "http://dev.markitondemand.com/MODApis/Api/v2/Lookup/json"
 
+var port = process.env.PORT || 3000
 
 // html file name
 var stock_html_file_name = "/stock.html";
@@ -52,8 +53,8 @@ app.get('/', function(req, res) {
   }
 })
 
-app.listen(3000, function() {
-  log("Listening on port 3000");
+app.listen(port, function() {
+  log("Listening on port " + port);
 })
 
 function log(msg) {

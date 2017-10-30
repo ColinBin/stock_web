@@ -17,6 +17,7 @@
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
     
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/offline-exporting.js"></script>
     <script>
     var app = angular.module('searchStock', ['ngSanitize']);
     app.service('ResultDisplayer', function() {
@@ -171,7 +172,7 @@
           series: series,
         };
         
-        Highcharts.chart(containerID, options);
+        return Highcharts.chart(containerID, options);
       }
       
       this.create_history_chart = function(historyData) {
@@ -233,14 +234,13 @@
           
         };
         
+        
         Highcharts.stockChart(containerID, options);
       }
     });
     app.controller('searchCtrl', function($scope, $http, ResultDisplayer){
       $scope.search = {
         symbolInput : "",
-        isValid : true,
-        isTouched: false,
         isSearched: false,
       };
       $scope.progress = {
@@ -303,16 +303,22 @@
           {type: "MACD", href:"#macd", active:"active"},
         ],
         currentActiveIndex: 0,
+        charts: {
+          Price: null,
+          EMA: null,
+          SMA: null,
+          STOCH: null,
+          RSI: null,
+          ADX: null,
+          CCI: null,
+          BBANDS: null,
+          MACD: null
+        }
       }
       $scope.newsList = [];
       // function to validate user input every time the key is down
       $scope.validate_input = function() {
-        $scope.search.isTouched = true;
-        if(!$scope.search.symbolInput || $scope.search.symbolInput.trim() == "") {
-          $scope.search.isValid = false;
-        } else {
-          $scope.search.isValid = true;
-        }        
+               
       }
       // function to submit the user input symbol to back-end and 
       $scope.submit = function() {
@@ -380,7 +386,7 @@
                 return;
               } else {
                 $scope.ready[readyKey] = true;
-                ResultDisplayer.create_indicator_charts(responseData, indicator);
+                $scope.view.charts[indicator] = ResultDisplayer.create_indicator_charts(responseData, indicator);
               }
             } else {
               // server to api error
@@ -449,6 +455,8 @@
       // function to clear user input and slide out detail panel and 
       // slide in favorite panel 
       $scope.clear = function(){ 
+        $scope.searchForm.$setUntouched();
+        $scope.search.symbolInput = "";
         $scope.search.isSearched = false;
         $scope.view.show_favorite = true;
       }
@@ -459,7 +467,33 @@
       
       $scope.enable_facebook = function() {
         var readyKey = "isIndic" + $scope.view.tabs[$scope.view.currentActiveIndex].type + "Ready";
-        return $scope.ready[readyKey] == true;
+        return $scope.ready[readyKey];
+      }
+      $scope.post_facebook = function() {
+        var indicatorType = $scope.view.tabs[$scope.view.currentActiveIndex].type;
+        var options = $scope.view.charts[indicatorType].options;
+        var data = {
+          options: JSON.stringify(options),
+          filename: "hello",
+          type: 'image/png',
+          async: true
+        };
+        var exportUrl = 'http://export.highcharts.com/';
+        $.post(exportUrl, data, function(data) {
+            exportUrl += data;
+            FB.ui({
+              app_id: 1884682165182321, 
+              method: 'feed',
+              display: 'popup',
+              picture: exportUrl,
+            }, (response) => {
+              if (response && !response.error_message) {
+                alert("Posted Successfully");
+              } else {
+                alert("Not Posted");
+              }
+            }); 
+        });
       }
     });
       
@@ -469,6 +503,25 @@
     
   </head>
   <body>
+    <script>
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId            : '1884682165182321',
+          autoLogAppEvents : true,
+          xfbml            : true,
+          version          : 'v2.10'
+        });
+        FB.AppEvents.logPageView();
+      };
+
+      (function(d, s, id){
+         var js, fjs = d.getElementsByTagName(s)[0];
+         if (d.getElementById(id)) {return;}
+         js = d.createElement(s); js.id = id;
+         js.src = "https://connect.facebook.net/en_US/sdk.js";
+         fjs.parentNode.insertBefore(js, fjs);
+       }(document, 'script', 'facebook-jssdk'));
+    </script>
     <div class="container" ng-app="searchStock" ng-controller="searchCtrl">
       <!-- #1 panel with search box -->
       <div class="panel panel-default">
@@ -486,20 +539,22 @@
               </div>
               <div class="col-sm-9">
                 <div class="row" >
-                  <div class="col-sm-8" ng-class="{'has-error': !search.isValid}">
-                    <input name="inputSymbol" type="text" class="form-control" id="symbol" placeholder="e.g. AAPL" ng-model="search.symbolInput" ng-change="validate_input()" ng-trim=false />
-                    <div>
-                      <span ng-show="!search.isValid">Please enter a stock ticker symbol.</span>
+                  <form name="searchForm" novalidate>
+                    <div class="col-sm-8" ng-class="{'has-error': searchForm.symbolInput.$touched && searchForm.symbolInput.$invalid}">
+                      <input name="symbolInput" type="text" class="form-control" id="symbol" placeholder="e.g. AAPL" ng-model="search.symbolInput" ng-change="validate_input()" required>
+                      <span ng-show="searchForm.symbolInput.$touched && searchForm.symbolInput.$invalid">Please enter a stock ticker symbol.</span>
+                      <div>
+                      </div>
                     </div>
-                  </div>
-                  <div class="col-sm-4">
-                    <button class="btn btn-primary" ng-click="submit()" ng-disabled="!search.isTouched || !search.isValid">
-                      <span class="glyphicon glyphicon-search" aria-hidden="true"></span> Get Quote
-                    </button>
-                    <button class="btn btn-default" ng-click="clear()">
-                      <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Clear
-                    </button>
-                  </div>
+                    <div class="col-sm-4">
+                      <button class="btn btn-primary" ng-click="submit()" ng-disabled="searchForm.symbolInput.$invalid">
+                        <span class="glyphicon glyphicon-search" aria-hidden="true"></span> Get Quote
+                      </button>
+                      <button class="btn btn-default" ng-click="clear()">
+                        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Clear
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
           </div>
@@ -564,7 +619,7 @@
                           <button type="button" class="btn btn-default btn-lg" ng-disabled="!ready.isDetailsReady">
                             <span class="glyphicon glyphicon-star-empty" aria-hidden="true"></span>
                           </button>
-                          <button type="button" class="btn btn-default btn-lg" ng-disabled="!enable_facebook()">
+                          <button type="button" class="btn btn-default btn-lg" ng-disabled="!enable_facebook()" ng-click="post_facebook()">
                             <img id="facebook-img" src="http://cs-server.usc.edu:45678/hw/hw8/images/facebook.png"/>
                           </button>
                         </div>
