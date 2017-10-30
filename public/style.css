@@ -103,5 +103,28 @@ hr{
   transition: 1s;
 }
 
-
+.animate-enter, 
+.animate-leave
+{ 
+    -webkit-transition: 300ms cubic-bezier(0.250, 0.100, 0.250, 1.000) all;
+    -moz-transition: 300ms cubic-bezier(0.250, 0.100, 0.250, 1.000) all;
+    -ms-transition: 300ms cubic-bezier(0.250, 0.100, 0.250, 1.000) all;
+    -o-transition: 300ms cubic-bezier(0.250, 0.100, 0.250, 1.000) all;
+    transition: 0.5s linear all;
+	transition-delay: 0.5s;
+} 
+ 
+.animate-enter {
+    left: 100%;
+}
+.animate-enter.animate-enter-active {
+    left: 0;
+}
+ 
+.animate-leave {
+    left: 0;
+}
+.animate-leave.animate-leave-active{
+    left: -100%;
+}
 

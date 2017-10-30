@@ -17,7 +17,6 @@
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
     
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/modules/offline-exporting.js"></script>
     <script>
     var app = angular.module('searchStock', ['ngSanitize']);
     app.service('ResultDisplayer', function() {
@@ -231,10 +230,17 @@
           subtitle: subtitle,
           series: [seriesData],
           rangeSelector: rangeSelector,
-          
+          tooltip: {
+            formatter: function () {
+              var s = Highcharts.dateFormat('%A, %b %e, %Y', this.x);
+              $.each(this.points, function () {
+                  s += '<br/><span style="color:' + this.color+ '">\u25CF</span>' + this.series.name +': <b>' + this.y + '</b>';
+              });
+              return s;
+            }
+          } 
         };
-        
-        
+      
         Highcharts.stockChart(containerID, options);
       }
     });
@@ -504,6 +510,7 @@
   </head>
   <body>
     <script>
+      // facebook sdk loading 
       window.fbAsyncInit = function() {
         FB.init({
           appId            : '1884682165182321',
@@ -567,10 +574,11 @@
           <hr />
         </div>
       </div>
-      <!-- #2.1 favorite stock panel -->
+      
       <div class="panel panel-default">
-        <div class="panel-body">
-          <div class="panel panel-default" id="favorite-panel" ng-hide="!view.show_favorite">
+        <div class="panel-body" class="switch" ng-switch on="view.show_favorite" ng-animate="animate">
+          <!-- #2.1 favorite stock panel -->
+          <div class="panel panel-default" id="favorite-panel" ng-switch-when="true">
             <div class="panel-heading text-left">
               <button type="button" class="btn btn-default btn-lg pull-right" ng-disabled="!search.isSearched" ng-click="view.show_favorite=!view.show_favorite">
                 <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
@@ -582,7 +590,7 @@
           </div>
         <!-- #2.2 stock detail panel -->
         <!-- inner stock with 3 pills -->
-          <div class="panel panel-default" id="detail-panel" ng-hide="view.show_favorite">
+          <div class="panel panel-default" id="detail-panel" ng-switch-when="false">
             <div class="panel-heading text-center">
               <button type="button" class="btn btn-default btn-lg pull-left" ng-click="view.show_favorite=!view.show_favorite">
                 <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
@@ -626,28 +634,7 @@
                         <div class="table-container" ng-bind-html="table.detail_table" ng-show="ready.isDetailsReady">
                         
                         </div>
-<!--
-                        <table class="table table-striped">
-                          <tbody>
-                            <tr>
-                              <th>Firstname</th>
-                              <td>John</td>
-                              <td>Doe</td>
-                              <td>john@example.com</td>
-                            </tr>
-                            <tr>
-                              <td>Mary</td>
-                              <td>Moe</td>
-                              <td>mary@example.com</td>
-                            </tr>
-                            <tr>
-                              <td>July</td>
-                              <td>Dooley</td>
-                              <td>july@example.com</td>
-                            </tr>
-                          </tbody>
-                        </table>
--->
+
                       </div> 
                       <div class="progress detail-progress-bar" ng-show="progress.isDetailsInProg">
                         <div class="progress-bar progress-bar-striped active" role="progressbar"
