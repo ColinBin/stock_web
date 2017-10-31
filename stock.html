@@ -8,12 +8,10 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <!-- multiple CDN -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js">
-    </script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-sanitize.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js">
-    </script>    
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>    
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
     
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
@@ -321,6 +319,11 @@
           MACD: null
         }
       }
+      $scope.favorite = {
+        currentSymbol: null,
+        isCurrentFavorited: false,
+        list: [],
+      };
       $scope.newsList = [];
       // function to validate user input every time the key is down
       $scope.validate_input = function() {
@@ -349,6 +352,7 @@
           $scope.progress.isDetailsInProg = false;
           $scope.error.isDetailsError = false;
           $scope.ready.isDetailsReady = false;
+          $scope.favorite.currentSymbol = null;
           if(responseJson.status_code == 200) {
             var responseData = responseJson.data;
             // check if data is null, if so display error
@@ -359,6 +363,8 @@
               $scope.ready.isDetailsReady = true;
             }
             $scope.table.detail_table = ResultDisplayer.create_detail_table(responseData);
+            $scope.favorite.currentSymbol = responseData.symbol;
+            $scope.favorite.isCurrentFavorited = ($scope.favorite.list.indexOf($scope.favorite.currentSymbol) != -1);
           } else {
             // server to api error
             $scope.error.isDetailsError = true;
@@ -469,6 +475,7 @@
       // slide in favorite panel 
       $scope.clear = function(){ 
         $scope.searchForm.$setUntouched();
+        $scope.favorite.isCurrentFavorited = false;
         $scope.search.symbolInput = "";
         $scope.search.isSearched = false;
         $scope.view.show_favorite = true;
@@ -508,12 +515,41 @@
             }); 
         });
       }
+      $scope.get_favorite_from_local = function() {
+        if (typeof(Storage) !== "undefined") {
+          var favorite_list = localStorage.getItem("favorite_list");
+          if(!favorite_list) {
+            return [];
+          } else {
+            return JSON.parse(favorite_list);
+          }
+        } else {
+            console.log("Sorry, your browser does not support Web Storage...");
+        }
+      }
+      $scope.set_favorite_from_local = function(new_list) {
+        if (typeof(Storage) !== "undefined") {
+          localStorage.setItem("favorite_list", JSON.stringify(new_list));
+        } else {
+            console.log("Sorry, your browser does not support Web Storage...");
+        }
+      }
+      $scope.toggle_favorite = function() {
+        $scope.favorite.list = $scope.get_favorite_from_local();
+        var target_index = $scope.favorite.list.indexOf($scope.favorite.currentSymbol);
+        if(target_index != -1) {
+          $scope.favorite.list.splice(target_index, 1);
+        } else {
+          $scope.favorite.list.push($scope.favorite.currentSymbol);
+        }
+        $scope.set_favorite_from_local($scope.favorite.list);
+        $scope.favorite.isCurrentFavorited = ($scope.favorite.list.indexOf($scope.favorite.currentSymbol) != -1);
+      }
+      // get favorite list when starting
+      $scope.favorite.list = $scope.get_favorite_from_local();
+      $scope.favorite.isCurrentFavorited = ($scope.favorite.list.indexOf($scope.favorite.currentSymbol) != -1);
     });
-      
-    
-  </script>
-    
-    
+  </script> 
   </head>
   <body>
     <script>
@@ -527,7 +563,6 @@
         });
         FB.AppEvents.logPageView();
       };
-
       (function(d, s, id){
          var js, fjs = d.getElementsByTagName(s)[0];
          if (d.getElementById(id)) {return;}
@@ -631,8 +666,8 @@
                           Stock Details
                         </div>
                         <div class="col-xs-4">
-                          <button type="button" class="btn btn-default btn-lg" ng-disabled="!ready.isDetailsReady">
-                            <span class="glyphicon glyphicon-star-empty" aria-hidden="true"></span>
+                          <button type="button" class="btn btn-default btn-lg" ng-disabled="!ready.isDetailsReady" ng-click="toggle_favorite()">
+                            <span class="glyphicon" ng-class="favorite.isCurrentFavorited ? ('glyphicon-star is-favorited-star') : 'glyphicon-star-empty'"  aria-hidden="true"></span>
                           </button>
                           <button type="button" class="btn btn-default btn-lg" ng-disabled="!enable_facebook()" ng-click="post_facebook()">
                             <img id="facebook-img" src="http://cs-server.usc.edu:45678/hw/hw8/images/facebook.png"/>

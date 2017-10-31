@@ -98,4 +98,6 @@ hr{
 .my-panel-child.ng-hide-remove.ng-hide-remove-active {
   transform: translateX(0px);
 }
-
+.is-favorited-star {
+  color: rgb(243,215,95);
+}
