@@ -6,6 +6,12 @@ body {
   margin-bottom: 10px;
 }
 
+@media (max-width: 767px) {
+    .search-button-group {
+        margin-top:20px;
+    }
+}
+
 hr{
   margin-top: 5px;
   margin-bottom: 5px;
@@ -101,3 +107,4 @@ hr{
 .is-favorited-star {
   color: rgb(243,215,95);
 }
+
