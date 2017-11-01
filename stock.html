@@ -730,7 +730,7 @@
           <div class="panel panel-default my-panel-child" ng-hide="!view.show_favorite">
             <div class="panel-heading text-left">
               <span class="pull-right">
-                <span>Automatic Refresh: </span>
+                <span class="hidden-xs">Automatic Refresh: </span>
                 <!-- TODO when clear, reset auto refresh? -->
                 <input type="checkbox" data-toggle="toggle">
                 <button type="button" class="btn btn-default btn-lg" ng-click="refresh_favorite()">
@@ -768,7 +768,7 @@
                   </select>
                 </div>
               </div>
-              <div class="table-container">
+              <div class="table-container table-responsive">
                 <table class='table table-striped'>
                   <tbody>
                     <tr>
@@ -807,12 +807,12 @@
               <ul class="nav nav-pills">
                 <li class="active">
                   <a data-toggle="pill" href="#stock">
-                    <span class="glyphicon glyphicon-dashboard" aria-hidden="true"></span> Current Stock
+                    <span class="glyphicon glyphicon-dashboard" aria-hidden="true"></span> <span class="hidden-xs">Current </span>Stock
                   </a></li>
                 <li><a data-toggle="pill" href="#charts">
-                  <span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Historical Charts</a></li>
+                  <span class="glyphicon glyphicon-stats" aria-hidden="true"></span> <span class="hidden-xs">Historical </span>Charts</a></li>
                 <li><a data-toggle="pill" href="#news">
-                  <span class="glyphicon glyphicon-link" aria-hidden="true"></span> News Feeds</a></li>
+                  <span class="glyphicon glyphicon-link" aria-hidden="true"></span> News<span class="hidden-xs"> Feeds</span></a></li>
               </ul>
               <div class="row">
                 <div class="col-xs-12">
