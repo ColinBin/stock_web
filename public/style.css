@@ -66,7 +66,7 @@ hr{
 .table tr {
   height: 50px;
 }
-.table th {
+.detail-table th {
   width: 50%;
 }
 .table img {
@@ -94,7 +94,7 @@ hr{
 }
 
 .my-panel-child.ng-hide-remove {
-  transform: translateX(-500px);
+  transform: translateX(-100%);
   transition: all 0.5s;
 }
 
@@ -104,7 +104,7 @@ hr{
 .is-favorited-star {
   color: rgb(243,215,95);
 }
-#stock-detail .row{
+#stock-detail .row, .favorite-panel-body{
   width: 95%;
   margin: auto;
 }

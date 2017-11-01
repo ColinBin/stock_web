@@ -295,6 +295,7 @@ function get_stock_info(full_stock_data) {
   compact_stock_data.prev_close = get_fixed_two_and_thousand_seperator_str(prev_close);
   compact_stock_data.change = (close - prev_close).toFixed(2);
   compact_stock_data.change_percent = (((close - prev_close) / prev_close) * 100).toFixed(2) + "%";
+  compact_stock_data.change_percent_num = (((close - prev_close) / prev_close) * 100).toFixed(2);
   return compact_stock_data;
 }
 
@@ -340,8 +341,6 @@ function get_parsed_news_list(xml_data) {
       });
   return news_list;
 }
-
-
 
 function get_thousand_commas_of_str(str_number) {
   return (parseFloat(str_number)).toLocaleString('en')

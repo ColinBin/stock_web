@@ -5,11 +5,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="style.css">
     <!-- multiple CDN -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> 
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-sanitize.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>    
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
@@ -26,7 +28,7 @@
         var detail_table = "";
         // TODO close and last price icon position, facebook button disable...
 
-        detail_table += "<table class='table table-striped'><tbody>";
+        detail_table += "<table class='table table-striped detail-table'><tbody>";
         detail_table += "<tr><th>Stock Ticker Symbol" + "</th><td>" + responseData.symbol + "</td></tr>";
         detail_table += "<tr><th>Change (Change Percent)" + "</th><td class='" + colorClass + "' >" + responseData.change + " (" + responseData.change_percent + ")" + "<img src='" + arrowUrl + "'/>" + "</td></tr>";
         detail_table += "<tr><th>Timestamp" + "</th><td>" + responseData.timestamp + "</td></tr>";
@@ -321,20 +323,22 @@
       }
       $scope.favorite = {
         currentSymbol: null,
-        isCurrentFavorited: false,
-        list: [],
+        currentSymbolData: null,
+        stockData: {},
+        sortOrder: "ascending",
+        sortBy: "default",
       };
       $scope.newsList = [];
       // function to validate user input every time the key is down
       $scope.validate_input = function() {
-               
+          
       }
       // function to submit the user input symbol to back-end and 
       $scope.submit = function() {
         $scope.search.isSearched = true;
         $scope.view.show_favorite = false;
         // slide two panels
-        var symbol = $scope.search.symbolInput;
+        var symbol = $scope.search.symbolInput.trim().toUpperCase();
         // make table and charts invisible, and error disappear
         for(var key in $scope.ready) {
           $scope.ready[key] = false;
@@ -347,12 +351,19 @@
           $scope.progress[key] = true;
         }
         // current stock detail ajax
-        $http.get("/?symbol=" +$scope.search.symbolInput + "&type=stock_detail").then(function(response){
+        var detailConfig = {
+            params: {
+              symbol: symbol,
+              type: "stock_detail"
+            }
+          }
+        $http.get("/", detailConfig).then(function(response){
           var responseJson = response.data;
           $scope.progress.isDetailsInProg = false;
           $scope.error.isDetailsError = false;
           $scope.ready.isDetailsReady = false;
           $scope.favorite.currentSymbol = null;
+          $scope.favorite.currentSymbolData = null;
           if(responseJson.status_code == 200) {
             var responseData = responseJson.data;
             // check if data is null, if so display error
@@ -364,7 +375,7 @@
             }
             $scope.table.detail_table = ResultDisplayer.create_detail_table(responseData);
             $scope.favorite.currentSymbol = responseData.symbol;
-            $scope.favorite.isCurrentFavorited = ($scope.favorite.list.indexOf($scope.favorite.currentSymbol) != -1);
+            $scope.favorite.currentSymbolData = responseData;
           } else {
             // server to api error
             $scope.error.isDetailsError = true;
@@ -380,7 +391,7 @@
           var indicator = indicators[index];
           var config = {
             params: {
-              symbol: $scope.search.symbolInput,
+              symbol: symbol,
               type: "indicator",
               option: indicator
             }
@@ -419,7 +430,7 @@
         // news feed ajax
         var newsConfig = {
           params: {
-            symbol: $scope.search.symbolInput,
+            symbol: symbol,
             type: "news"
           }
         }
@@ -443,7 +454,7 @@
         // stock history ajax
         var historyConfig = {
           params: {
-            symbol: $scope.search.symbolInput,
+            symbol: symbol,
             type: "stock_history",
           }
         };
@@ -475,7 +486,6 @@
       // slide in favorite panel 
       $scope.clear = function(){ 
         $scope.searchForm.$setUntouched();
-        $scope.favorite.isCurrentFavorited = false;
         $scope.search.symbolInput = "";
         $scope.search.isSearched = false;
         $scope.view.show_favorite = true;
@@ -484,7 +494,9 @@
       $scope.set_active = function(index) {
         $scope.view.currentActiveIndex = index;
       }
-      
+      $scope.strip_format_float = function(num_str) {
+        return parseFloat(num_str.replace(/\,/g,''));
+      }
       $scope.enable_facebook = function() {
         var readyKey = "isIndic" + $scope.view.tabs[$scope.view.currentActiveIndex].type + "Ready";
         return $scope.ready[readyKey];
@@ -515,6 +527,57 @@
             }); 
         });
       }
+      $scope.extract_for_favorite = function(stock_detail_data) {
+        var arrowUrl = (parseFloat(stock_detail_data.change) >= 0) ? "http://cs-server.usc.edu:45678/hw/hw8/images/Up.png" : "http://cs-server.usc.edu:45678/hw/hw8/images/Down.png";
+        var colorClass = (parseFloat(stock_detail_data.change) >= 0) ? "green" : "red";
+        var changeHtml = "<span class='" + colorClass + "'>" + stock_detail_data.change + " (" + stock_detail_data.change_percent + ") <img src='" + arrowUrl + "'/>" + "</span>";
+        var formatted_favorite_data = {
+          price: $scope.strip_format_float(stock_detail_data.close),
+          priceStr: stock_detail_data.close,
+          change: $scope.strip_format_float(stock_detail_data.change),
+          changeStr: stock_detail_data.change,
+          changePercent: $scope.strip_format_float(stock_detail_data.change_percent_num),
+          changePercentStr: stock_detail_data.change_percent,
+          changeHtml: changeHtml,
+          volume: $scope.strip_format_float(stock_detail_data.volume),
+          volumeStr: stock_detail_data.volume,
+        };
+        return formatted_favorite_data;
+      }
+      $scope.refresh_favorite = function() {
+        var symbol_keys = Object.keys($scope.favorite.stockData);
+        for(var index in symbol_keys) {
+          var stock_symbol = symbol_keys[index];
+          var refresh_config = {
+            params: {
+              symbol: stock_symbol,
+              type: "stock_detail"
+            }
+          };
+          $http.get("/", refresh_config).then(function(response) {
+            var responseJson = response.data;
+            if(responseJson.status_code == 200) {
+              var responseData = responseJson.data;
+              if(responseData != null) {
+                var stock_symbol = response.config.params.symbol;
+                if(stock_symbol in $scope.favorite.stockData) {
+                  // only if this symbol is favorited
+                  $scope.favorite.stockData[stock_symbol] = $scope.extract_for_favorite(responseData);
+                }
+              } else {
+                // TODO invalid symbol error possible?
+                // use previously updated data instead of showing N/A
+              }
+            } else {
+              // server to api 5xx error
+              // use previously updated data instead of showing N/A
+            }
+          }, function(error_response){
+            // client to backend error
+            // use previously updated data instead of showing N/A
+          });
+        }
+      }
       $scope.get_favorite_from_local = function() {
         if (typeof(Storage) !== "undefined") {
           var favorite_list = localStorage.getItem("favorite_list");
@@ -535,19 +598,39 @@
         }
       }
       $scope.toggle_favorite = function() {
-        $scope.favorite.list = $scope.get_favorite_from_local();
-        var target_index = $scope.favorite.list.indexOf($scope.favorite.currentSymbol);
+        var favorite_list = $scope.get_favorite_from_local();
+        var target_index = favorite_list.indexOf($scope.favorite.currentSymbol);
         if(target_index != -1) {
-          $scope.favorite.list.splice(target_index, 1);
+          // if already favorited, remove from the list and remove from stockData for favorite
+          favorite_list.splice(target_index, 1);
+          delete $scope.favorite.stockData[$scope.favorite.currentSymbol];
         } else {
-          $scope.favorite.list.push($scope.favorite.currentSymbol);
+          // if not favorited, add to the favorite list and add to stockData for favorite
+          favorite_list.push($scope.favorite.currentSymbol);
+          $scope.favorite.stockData[$scope.favorite.currentSymbol] = $scope.extract_for_favorite($scope.favorite.currentSymbolData);
         }
-        $scope.set_favorite_from_local($scope.favorite.list);
-        $scope.favorite.isCurrentFavorited = ($scope.favorite.list.indexOf($scope.favorite.currentSymbol) != -1);
+        $scope.set_favorite_from_local(favorite_list);
+      }
+      
+      $scope.remove_favorite = function(symbol) {
+        var favorite_list = $scope.get_favorite_from_local();
+        var target_index = favorite_list.indexOf(symbol);
+        favorite_list.splice(target_index, 1);
+        delete $scope.favorite.stockData[symbol];
+        $scope.set_favorite_from_local(favorite_list);
+        
+      }
+      $scope.check_current_favorited = function() {
+        return $scope.favorite.currentSymbol in $scope.favorite.stockData;
       }
       // get favorite list when starting
-      $scope.favorite.list = $scope.get_favorite_from_local();
-      $scope.favorite.isCurrentFavorited = ($scope.favorite.list.indexOf($scope.favorite.currentSymbol) != -1);
+      var favorite_list = $scope.get_favorite_from_local();
+      // initialize stockData with favorited symbols as keys
+      for(var index in favorite_list) {
+        $scope.favorite.stockData[favorite_list[index]] = null;
+      }
+      // get stock data for these symbols
+      $scope.refresh_favorite();
     });
   </script> 
   </head>
@@ -622,11 +705,68 @@
           <!-- #2.1 favorite stock panel -->
           <div class="panel panel-default my-panel-child" ng-hide="!view.show_favorite">
             <div class="panel-heading text-left">
-              <button type="button" class="btn btn-default btn-lg pull-right" ng-disabled="!search.isSearched" ng-click="view.show_favorite=!view.show_favorite">
-                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
-              </button>
+              <span class="pull-right">
+                <span>Automatic Refresh: </span>
+                <!-- TODO when clear, reset auto refresh? -->
+                <input type="checkbox" data-toggle="toggle">
+                <button type="button" class="btn btn-default btn-lg" ng-click="refresh_favorite()">
+                  <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="btn btn-default btn-lg" ng-disabled="!search.isSearched" ng-click="view.show_favorite=!view.show_favorite">
+                  <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                </button>
+              </span>
               <h4>Favorite List</h4>
               
+            </div>
+            <div class="panel-body favorite-panel-body">
+              <div class="row">
+                <div class="col-sm-1 col-xs-12 h5">
+                  Sort by
+                </div>
+                <div class="col-sm-2 col-xs-12">
+                  <select class="form-control" ng-model="favorite.sortBy">
+                    <option value="default" selected>Default</option>
+                    <option value="symbol">Symbol</option>
+                    <option value="price">Price</option>
+                    <option value="change">Change</option>
+                    <option value="change_percent">Change Percent</option>
+                    <option value="volume">Volume</option>
+                  </select>
+                </div>
+                <div class="col-sm-1 col-xs-12 h5">
+                  Order
+                </div>
+                <div class="col-sm-2 col-xs-12">
+                  <select class="form-control" ng-model="favorite.sortOrder" ng-disabled="favorite.sortBy=='default'">
+                    <option value="ascending" selected>Ascending</option>
+                    <option value="descending">Descending</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-container">
+                <table class='table table-striped'>
+                  <tbody>
+                    <tr>
+                      <th>Symbol</th><th>Stock Price</th><th>Change (Change Percent)</th><th>Volume</th><th>
+                    </tr>
+                    <tr ng-repeat="(symbol, data) in favorite.stockData">
+                      <td>{{symbol}}</td>
+                      <td ng-if='data'>{{data.priceStr}}</td>
+                      <td ng-if='!data'>N/A</td>
+                      <td ng-if='data' ng-bind-html="data.changeHtml">{{data.changeHtml}}</td>
+                      <td ng-if='!data'>N/A</td>
+                      <td ng-if='data'>{{data.volumeStr}}</td>
+                      <td ng-if='!data'>N/A</td>
+                      <td>
+                        <button type="button" class="btn btn-default btn-md" ng-click="remove_favorite(symbol)">
+                          <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
           </div>
@@ -667,7 +807,7 @@
                         </span>
                         <span class="pull-right">
                           <button type="button" class="btn btn-default btn-lg" ng-disabled="!ready.isDetailsReady" ng-click="toggle_favorite()">
-                            <span class="glyphicon" ng-class="favorite.isCurrentFavorited ? ('glyphicon-star is-favorited-star') : 'glyphicon-star-empty'"  aria-hidden="true"></span>
+                            <span class="glyphicon" ng-class="check_current_favorited() ? ('glyphicon-star is-favorited-star') : 'glyphicon-star-empty'"  aria-hidden="true"></span>
                           </button>
                           <button type="button" class="btn btn-default btn-lg" ng-disabled="!enable_facebook()" ng-click="post_facebook()">
                             <img id="facebook-img" src="http://cs-server.usc.edu:45678/hw/hw8/images/facebook.png"/>
@@ -676,9 +816,7 @@
                       </div> 
                       <div class="table-container" ng-bind-html="table.detail_table" ng-show="ready.isDetailsReady">
 
-                      </div>
-
-                      
+                      </div> 
                       <div class="progress detail-progress-bar" ng-show="progress.isDetailsInProg">
                         <div class="progress-bar progress-bar-striped active" role="progressbar"
                         aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
