@@ -288,11 +288,11 @@ function get_stock_info(full_stock_data) {
   var low = parseFloat(last_day_data['3. low']);
   var high = parseFloat(last_day_data['2. high']);
   var volume = parseInt(last_day_data['5. volume']);
-  compact_stock_data.close = close.toFixed(2);
-  compact_stock_data.open = open.toFixed(2);
+  compact_stock_data.close = get_fixed_two_and_thousand_seperator_str(close);
+  compact_stock_data.open = get_fixed_two_and_thousand_seperator_str(open);
   compact_stock_data.volume = volume.toLocaleString('en');
-  compact_stock_data.range = low.toFixed(2) + "-" + high.toFixed(2);
-  compact_stock_data.prev_close = prev_close.toFixed(2);
+  compact_stock_data.range = get_fixed_two_and_thousand_seperator_str(low) + "-" + get_fixed_two_and_thousand_seperator_str(high);
+  compact_stock_data.prev_close = get_fixed_two_and_thousand_seperator_str(prev_close);
   compact_stock_data.change = (close - prev_close).toFixed(2);
   compact_stock_data.change_percent = (((close - prev_close) / prev_close) * 100).toFixed(2) + "%";
   return compact_stock_data;
@@ -341,10 +341,12 @@ function get_parsed_news_list(xml_data) {
   return news_list;
 }
 
-function get_two_decimals_of_str(str_number) {
-  return parseFloat(str_number).toFixed(2);
-}
+
 
 function get_thousand_commas_of_str(str_number) {
   return (parseFloat(str_number)).toLocaleString('en')
+}
+function get_fixed_two_and_thousand_seperator_str(str_number) {
+  var fixed_two = parseFloat(str_number).toFixed(2);
+  return get_thousand_commas_of_str(fixed_two);
 }
