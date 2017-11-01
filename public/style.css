@@ -62,10 +62,7 @@ hr{
   margin-top: 80px;
   margin-bottom: 60px;
 }
-.table {
-  width: 95%;
-  margin: auto;
-}
+
 .table tr {
   height: 50px;
 }
@@ -82,7 +79,7 @@ hr{
   color: red;
 }
 .table-container {
-  margin-top: 60px;
+  margin-top: 20px;
 }
 .news-title {
   margin-top: 20px;
@@ -107,4 +104,7 @@ hr{
 .is-favorited-star {
   color: rgb(243,215,95);
 }
-
+#stock-detail .row{
+  width: 95%;
+  margin: auto;
+}

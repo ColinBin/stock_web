@@ -660,24 +660,25 @@
                 <div id="stock" class="tab-pane fade in active">
                   <div class="row">
                     <!-- stock detail with table-->
-                    <div class="col-sm-6">
+                    <div class="col-sm-6" id="stock-detail">
                       <div class="row">
-                        <div class="col-xs-8 h4">
-                          Stock Details
-                        </div>
-                        <div class="col-xs-4">
+                        <span class="h4">
+                            Stock Details
+                        </span>
+                        <span class="pull-right">
                           <button type="button" class="btn btn-default btn-lg" ng-disabled="!ready.isDetailsReady" ng-click="toggle_favorite()">
                             <span class="glyphicon" ng-class="favorite.isCurrentFavorited ? ('glyphicon-star is-favorited-star') : 'glyphicon-star-empty'"  aria-hidden="true"></span>
                           </button>
                           <button type="button" class="btn btn-default btn-lg" ng-disabled="!enable_facebook()" ng-click="post_facebook()">
                             <img id="facebook-img" src="http://cs-server.usc.edu:45678/hw/hw8/images/facebook.png"/>
                           </button>
-                        </div>
-                        <div class="table-container" ng-bind-html="table.detail_table" ng-show="ready.isDetailsReady">
-                        
-                        </div>
-
+                        </span>
                       </div> 
+                      <div class="table-container" ng-bind-html="table.detail_table" ng-show="ready.isDetailsReady">
+
+                      </div>
+
+                      
                       <div class="progress detail-progress-bar" ng-show="progress.isDetailsInProg">
                         <div class="progress-bar progress-bar-striped active" role="progressbar"
                         aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%">
