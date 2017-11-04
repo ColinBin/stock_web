@@ -5,16 +5,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="style.css">
+
     <!-- multiple CDN -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> 
-<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-sanitize.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>    
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
+    
+    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
     
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script>
@@ -244,7 +246,7 @@
         Highcharts.stockChart(containerID, options);
       }
     });
-    app.controller('searchCtrl', function($scope, $http, ResultDisplayer){
+    app.controller('searchCtrl', function($scope, $http, $interval, ResultDisplayer){
       $scope.search = {
         symbolInput : "",
         isSearched: false,
@@ -644,6 +646,16 @@
         }
         return -1;
       }
+      var promise = null;
+      // TODO 
+      $scope.toggle_auto_refresh = function(isAutoRefreshActive) {
+        if(isAutoRefreshActive) {
+          promise = $interval($scope.refresh_favorite, 5000);
+        } else {
+          $interval.cancel(promise);
+        }
+      }
+      
       // get favorite list when starting
       var favorite_list = $scope.get_favorite_from_local();
       // initialize stockData with favorited symbols as keys
@@ -656,7 +668,12 @@
       // get stock data for these symbols
       $scope.refresh_favorite();
     });
-  </script> 
+      $(document).ready(function() {
+        $('#toggle-refresh').change(function() {
+          angular.element(document.getElementById('app')).scope().toggle_auto_refresh(this.checked);
+        });
+      });
+  </script>     
   </head>
   <body>
     <script>
@@ -678,7 +695,7 @@
          fjs.parentNode.insertBefore(js, fjs);
        }(document, 'script', 'facebook-jssdk'));
     </script>
-    <div class="container" ng-app="searchStock" ng-controller="searchCtrl">
+    <div class="container" ng-app="searchStock" ng-controller="searchCtrl" id="app">
       <!-- #1 panel with search box -->
       <div class="panel panel-default">
         <div class="panel-body">
@@ -732,7 +749,7 @@
               <span class="pull-right">
                 <span class="hidden-xs">Automatic Refresh: </span>
                 <!-- TODO when clear, reset auto refresh? -->
-                <input type="checkbox" data-toggle="toggle">
+                <input type="checkbox" data-toggle="toggle" id="toggle-refresh">
                 <button type="button" class="btn btn-default btn-lg" ng-click="refresh_favorite()">
                   <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
                 </button>

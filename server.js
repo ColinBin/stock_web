@@ -256,11 +256,11 @@ function retrieve_and_send_stock_detail(res, symbol) {
     stock_detail_result.status_code = response.statusCode;
     try {
       var parsedData = JSON.parse(body);
-       if(Object.keys(parsedData).length == 0 || "Error Message" in parsedData) {
-          stock_detail_result.data = null;
-        } else {
-          stock_detail_result.data = get_stock_info(parsedData);
-        }
+      if(Object.keys(parsedData).length == 0 || "Error Message" in parsedData) {
+        stock_detail_result.data = null;
+      } else {
+        stock_detail_result.data = get_stock_info(parsedData);
+      }
     } catch(err) {
       log(err);
       stock_detail_result.data = null;
@@ -309,7 +309,12 @@ function retrieve_and_send_news(res, symbol) {
     news_result.status_code = response.statusCode;
     if(response.statusCode == 200) {
       // when valid stock symbol, attach news list
-      news_result.data = get_parsed_news_list(body);
+      try {
+        news_result.data = get_parsed_news_list(body);
+      } catch(err) {
+        log(err);
+        news_result.status_code = 404;
+      }
     } 
     res.send(news_result);
   });
