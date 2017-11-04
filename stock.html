@@ -336,11 +336,10 @@
           
       }
       // function to submit the user input symbol to back-end and 
-      $scope.submit = function() {
+      $scope.submit = function(symbol) {
         $scope.search.isSearched = true;
         $scope.view.show_favorite = false;
         // slide two panels
-        var symbol = $scope.search.symbolInput.trim().toUpperCase();
         // make table and charts invisible, and error disappear
         for(var key in $scope.ready) {
           $scope.ready[key] = false;
@@ -720,7 +719,7 @@
                       </div>
                     </div>
                     <div class="col-sm-4 search-button-group">
-                      <button class="btn btn-primary" ng-click="submit()" ng-disabled="searchForm.symbolInput.$invalid">
+                      <button class="btn btn-primary" ng-click="submit(search.symbolInput.trim().toUpperCase())" ng-disabled="searchForm.symbolInput.$invalid">
                         <span class="glyphicon glyphicon-search" aria-hidden="true"></span> Get Quote
                       </button>
                       <button class="btn btn-default" ng-click="clear()">
@@ -792,7 +791,7 @@
                       <th>Symbol</th><th>Stock Price</th><th>Change (Change Percent)</th><th>Volume</th><th>
                     </tr>
                     <tr ng-repeat="item in favorite.stockData | orderBy:favorite.orderPropertyName:(favorite.orderPropertyName=='null' ? false : favorite.reverse == 'true')">
-                      <td>{{item.symbol}}</td>
+                      <td><a href="javascript:void(0)" ng-click="submit(item.symbol)">{{item.symbol}}</a></td>
                       <td ng-if='item.data'>{{item.data.priceStr}}</td>
                       <td ng-if='!item.data'>N/A</td>
                       <td ng-if='item.data' ng-bind-html="item.data.changeHtml">{{data.changeHtml}}</td>
