@@ -108,3 +108,6 @@ hr{
   width: 95%;
   margin: auto;
 }
+md-autocomplete button {
+  display: none;
+}

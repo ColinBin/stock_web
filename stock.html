@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="angular-material.css">
     <link rel="stylesheet" type="text/css" href="style.css">
 
     <!-- multiple CDN -->
@@ -13,6 +14,9 @@
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-sanitize.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>    
+    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
     <script src="https://code.highcharts.com/stock/highstock.src.js"></script>
     
     <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
@@ -20,7 +24,11 @@
     
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script>
-    var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate']);
+    $(document).ready(function() {
+      $("input[type='search']").addClass("form-control");
+      
+    });
+    var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial']);
     app.service('ResultDisplayer', function() {
       this.create_detail_table = function(responseData) {
         // process response and return a table html string
@@ -247,6 +255,7 @@
       }
     });
     app.controller('searchCtrl', function($scope, $http, $interval, ResultDisplayer){
+      
       $scope.search = {
         symbolInput : "",
         isSearched: false,
@@ -331,9 +340,32 @@
         reverse: "false",
       };
       $scope.newsList = [];
-      // function to validate user input every time the key is down
-      $scope.validate_input = function() {
+      // function to fetch hints
+      $scope.get_hints = function() {
+        var hintConfig = {
+          params: {
+            symbol: $scope.search.symbolInput,
+            type: "autocomplete",
+          }
+        }
+        return $http.get("/", hintConfig).then(function(response) {
+          var responseJson = response.data;
           
+          if(responseJson.status_code == 200) {
+            var responseData = responseJson.data;
+            if(responseData != null) {
+              return responseData;
+            } else {
+              return [];
+            }
+          } else {
+            // server to api error
+            return [];
+          }
+        }, function(error_response) {
+          // client to server error 
+          return [];
+        })
       }
       // function to submit the user input symbol to back-end and 
       $scope.submit = function(symbol) {
@@ -713,7 +745,14 @@
                 <div class="row" >
                   <form name="searchForm" novalidate>
                     <div class="col-sm-8" ng-class="{'has-error': searchForm.symbolInput.$touched && searchForm.symbolInput.$invalid}">
-                      <input name="symbolInput" type="text" class="form-control" id="symbol" placeholder="e.g. AAPL" ng-model="search.symbolInput" ng-change="validate_input()" required>
+<!--                      <input name="symbolInput" type="text" class="form-control" id="symbol" placeholder="e.g. AAPL" ng-model="search.symbolInput" ng-change="validate_input()" required>-->
+                      <md-autocomplete required md-input-name="symbolInput" md-selected-item="selectedItem" md-search-text="search.symbolInput" md-items="hint in get_hints()" md-item-text="hint.symbol" placeholder="e.g. AAPL" md-no-cache>
+          
+                        <md-item-template>
+                          <span md-highlight-text="symbolInput">{{hint.full_description}}</span>
+                        </md-item-template>
+                      </md-autocomplete>
+                      
                       <span ng-show="searchForm.symbolInput.$touched && searchForm.symbolInput.$invalid">Please enter a stock ticker symbol.</span>
                       <div>
                       </div>

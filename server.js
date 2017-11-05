@@ -74,7 +74,14 @@ function retrieve_and_send_suggestions(res, input) {
     markit_result.status_code = response.statusCode;
     try {
       var parsedData = JSON.parse(body);
-      markit_result.data = parsedData;
+      var formatted_data = [];
+      for(var index = 0; index < parsedData.length && index < 5; ++index) {
+        formatted_data.push({
+          symbol: parsedData[index].Symbol,
+          full_description: parsedData[index].Symbol + " - " + parsedData[index].Name + " (" + parsedData[index].Exchange + ")",
+        });
+      }
+      markit_result.data = formatted_data;
     } catch(err) {
       log(err);
       markit_result.data = null;
@@ -121,11 +128,12 @@ function get_stock_history(full_stock_history_data) {
     data: [],
   };
   var keys = Object.keys(full_stock_history_data['Time Series (Daily)']);
-  for(var index = 0; index < 1000; ++index) {
+  for(var index = 0; index < keys.length; ++index) {
     // TODO make sure the date is right in terms of timezone
     var time_key = keys[index];
     var current_date = new Date(time_key);
     formatted_stock_history_data.data.unshift([current_date.getTime(), parseFloat(full_stock_history_data['Time Series (Daily)'][time_key]['4. close'])]);
+    
   }
   return formatted_stock_history_data;
 }
