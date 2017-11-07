@@ -7,9 +7,9 @@ html, body {
 }
 
 @media (max-width: 767px) {
-    .search-button-group {
-        margin-top:20px;
-    }
+  .search-button-group {
+    margin-top:20px;
+  }
 }
 
 hr{
@@ -110,4 +110,8 @@ hr{
 }
 md-autocomplete button, md-autocomplete md-progress-linear {
   display: none;
+}
+.container {
+  padding-left: 0px;
+  padding-right: 0px;
 }
