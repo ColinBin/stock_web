@@ -1,4 +1,4 @@
-body {
+html, body {
   background-image: url("http://cs-server.usc.edu:45678/hw/hw8/images/background.png");
 }
 .panel {
@@ -108,6 +108,6 @@ hr{
   width: 95%;
   margin: auto;
 }
-md-autocomplete button {
+md-autocomplete button, md-autocomplete md-progress-linear {
   display: none;
 }

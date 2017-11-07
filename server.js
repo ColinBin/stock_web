@@ -24,25 +24,25 @@ var stock_html_file_name = "/stock.html";
 
 app.get('/', function(req, res) {
   if(Object.keys(req.query).length != 0) {
-    log(req.url);
+    log(req.url + " START");
     if("type" in req.query && "symbol" in req.query) {
       var type = req.query.type;
       var symbol = req.query.symbol;
       // get data based on request types
       if(type == "news") {
-        retrieve_and_send_news(res, symbol);
+        retrieve_and_send_news(res, symbol, req.url);
       } else if(type == "stock_detail"){
-        retrieve_and_send_stock_detail(res, symbol);
+        retrieve_and_send_stock_detail(res, symbol, req.url);
       } else if(type == "indicator") {
         if("option" in req.query) {
-          retrieve_and_send_indicator(res, symbol, req.query.option);
+          retrieve_and_send_indicator(res, symbol, req.query.option, req.url);
         } else {
           res.send({"msg" : "Bad Request(No indicator type provided)"});
         }
       } else if(type == "stock_history") {
-        retrieve_and_send_stock_history(res, symbol);
+        retrieve_and_send_stock_history(res, symbol, req.url);
       } else if(type == 'autocomplete') {
-        retrieve_and_send_suggestions(res, symbol);
+        retrieve_and_send_suggestions(res, symbol, req.url);
       }
     } else {
       res.send({"msg" : "Bad Request(No symbol or type parameters)"});
@@ -61,7 +61,7 @@ function log(msg) {
   console.log(dateformat(new Date, "yy-mm-dd hh:MM:ss----") +msg);
 }
 
-function retrieve_and_send_suggestions(res, input) {
+function retrieve_and_send_suggestions(res, input, requestUrl) {
   var markit_result = {};
   var params = {
     'input': input,
@@ -71,6 +71,7 @@ function retrieve_and_send_suggestions(res, input) {
     qs: params,
     method: "GET"
   }, function(error, response, body) {
+    log(requestUrl + " DONE " + response.statusCode);
     markit_result.status_code = response.statusCode;
     try {
       var parsedData = JSON.parse(body);
@@ -91,7 +92,7 @@ function retrieve_and_send_suggestions(res, input) {
 }
 
 // get full size stock value (at most 1000)
-function retrieve_and_send_stock_history(res, symbol) {
+function retrieve_and_send_stock_history(res, symbol, requestUrl) {
   var stock_history_result = {};
   var params = {
     "function" : "TIME_SERIES_DAILY",
@@ -104,6 +105,7 @@ function retrieve_and_send_stock_history(res, symbol) {
     qs: params,
     method: "GET"
   }, function(error, response, body) {
+    log(requestUrl + " DONE WITH " + response.statusCode);
     stock_history_result.status_code = response.statusCode;
     try {
       var parsedData = JSON.parse(body);
@@ -128,18 +130,18 @@ function get_stock_history(full_stock_history_data) {
     data: [],
   };
   var keys = Object.keys(full_stock_history_data['Time Series (Daily)']);
-  for(var index = 0; index < keys.length; ++index) {
+  for(var index = 0; index < keys.length && index < 1000; ++index) {
     // TODO make sure the date is right in terms of timezone
     var time_key = keys[index];
     var current_date = new Date(time_key);
-    formatted_stock_history_data.data.unshift([current_date.getTime(), parseFloat(full_stock_history_data['Time Series (Daily)'][time_key]['4. close'])]);
+    formatted_stock_history_data.data.unshift([current_date.getTime(), parseFloat(parseFloat(full_stock_history_data['Time Series (Daily)'][time_key]['4. close']).toFixed(2))]);
     
   }
   return formatted_stock_history_data;
 }
 
 // use alpha api to indicator data for one some type
-function retrieve_and_send_indicator(res, symbol, indicator_type) {
+function retrieve_and_send_indicator(res, symbol, indicator_type, requestUrl) {
   var indicator_url = alpha_base_url + "?";
   if(indicator_type == 'Price') {
     indicator_url += "function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=full&apikey=" + alpha_api_key;
@@ -166,6 +168,7 @@ function retrieve_and_send_indicator(res, symbol, indicator_type) {
     url: indicator_url,
     method: "GET"
   }, function(error, response, body) {
+    log(requestUrl + " DONE WITH " + response.statusCode);
     var indicator_result = {};
     indicator_result.status_code = response.statusCode;
     // client should check both status code and if json data is null to ensure the symobl is valid
@@ -227,7 +230,8 @@ function get_trimmed_indicator_data(indicator_type, full_indicator_data) {
     // TODO change the format of date
     
     var unformatted_date = keys[i];
-    trimmed_indicator_data.xValue.unshift(dateformat(new Date(unformatted_date), "mm/dd"));
+    trimmed_indicator_data.xValue.unshift(moment.tz(unformatted_date, "America/New_York").format('MM/DD'));
+    
     if(indicator_type == "Price") {
       trimmed_indicator_data.yValue.price.unshift(parseFloat(curr_data['4. close']));
       trimmed_indicator_data.yValue.volume.unshift(parseFloat(curr_data['5. volume']));
@@ -249,7 +253,7 @@ function get_trimmed_indicator_data(indicator_type, full_indicator_data) {
   return trimmed_indicator_data;
 }
 
-function retrieve_and_send_stock_detail(res, symbol) {
+function retrieve_and_send_stock_detail(res, symbol, requestUrl) {
   var stock_detail_result = {};
   var params = {
     "function" : "TIME_SERIES_DAILY",
@@ -261,6 +265,7 @@ function retrieve_and_send_stock_detail(res, symbol) {
     qs: params,
     method: "GET"
   }, function(error, response, body) {
+    log(requestUrl + " DONE WITH " + response.statusCode);
     stock_detail_result.status_code = response.statusCode;
     try {
       var parsedData = JSON.parse(body);
@@ -280,39 +285,60 @@ function retrieve_and_send_stock_detail(res, symbol) {
 
 function get_stock_info(full_stock_data) {
   // TODO transform the timestamp
+  var last_refresh_time_str = full_stock_data['Meta Data']['3. Last Refreshed'];
+  var last_refresh_time = moment.tz(last_refresh_time_str, "America/New_York"); 
+  var isTrading = false;
+  if(last_refresh_time.hours() != 0) {
+    // during trading hour
+    isTrading = true;
+  } else {
+    // not in trading hour
+    last_refresh_time.set('hour', 16);
+    isTrading = false;
+  }
+  var timestamp = last_refresh_time.format("YYYY-MM-DD HH:mm:ss") + " EDT";
   var compact_stock_data = {
     "symbol" : full_stock_data['Meta Data']['2. Symbol'],
-    "timestamp" : full_stock_data['Meta Data']['3. Last Refreshed'] + " EDT",
-    "timezone" : full_stock_data['Meta Data']['5. Time Zone']
+    "timestamp" : timestamp,
+    "timezone" : full_stock_data['Meta Data']['5. Time Zone'],
+    "isTrading": isTrading,
   };
   var keys = Object.keys(full_stock_data['Time Series (Daily)']);
 
   var last_day_data = full_stock_data['Time Series (Daily)'][keys[0]];
   var second_last_day_data = full_stock_data['Time Series (Daily)'][keys[1]];
   
-  var close = parseFloat(last_day_data['4. close']);
   var prev_close = parseFloat(second_last_day_data['4. close']);
+  var close = parseFloat(last_day_data['4. close']);
   var open = parseFloat(last_day_data['1. open']);
   var low = parseFloat(last_day_data['3. low']);
   var high = parseFloat(last_day_data['2. high']);
   var volume = parseInt(last_day_data['5. volume']);
-  compact_stock_data.close = get_fixed_two_and_thousand_seperator_str(close);
+  
+  if(isTrading) {
+    // use prev close data
+    compact_stock_data.prev_close = get_fixed_two_and_thousand_seperator_str(prev_close);
+  } else {
+    // use close data on last refreshed day 
+    compact_stock_data.close = get_fixed_two_and_thousand_seperator_str(close);
+  }
+  compact_stock_data.last_price = get_fixed_two_and_thousand_seperator_str(close);
   compact_stock_data.open = get_fixed_two_and_thousand_seperator_str(open);
   compact_stock_data.volume = volume.toLocaleString('en');
   compact_stock_data.range = get_fixed_two_and_thousand_seperator_str(low) + "-" + get_fixed_two_and_thousand_seperator_str(high);
-  compact_stock_data.prev_close = get_fixed_two_and_thousand_seperator_str(prev_close);
   compact_stock_data.change = (close - prev_close).toFixed(2);
   compact_stock_data.change_percent = (((close - prev_close) / prev_close) * 100).toFixed(2) + "%";
   compact_stock_data.change_percent_num = (((close - prev_close) / prev_close) * 100).toFixed(2);
   return compact_stock_data;
 }
 
-function retrieve_and_send_news(res, symbol) {
+function retrieve_and_send_news(res, symbol, requestUrl) {
   var news_full_url = news_base_url + symbol + ".xml";
   request({
     url: news_full_url,
     method: "GET"
   }, function(error, response, body) {
+    log(requestUrl + " DONE WITH " + response.statusCode);
     var news_result = {};
     news_result.status_code = response.statusCode;
     if(response.statusCode == 200) {
@@ -359,6 +385,5 @@ function get_thousand_commas_of_str(str_number) {
   return (parseFloat(str_number)).toLocaleString('en')
 }
 function get_fixed_two_and_thousand_seperator_str(str_number) {
-  var fixed_two = parseFloat(str_number).toFixed(2);
-  return get_thousand_commas_of_str(fixed_two);
+  return (parseFloat(str_number)).toLocaleString('en', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
