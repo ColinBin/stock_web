@@ -159,7 +159,7 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
         return Highcharts.chart(containerID, options);
       }
       
-      this.create_history_chart = function(historyData) {
+      this.create_history_chart = function(historyData, isMobile) {
         var containerID = 'history-chart-container';
         var title = {
           text: historyData.title,
@@ -208,7 +208,29 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
               text: 'All'
           }],
         }
-        
+        if(isMobile) {
+          rangeSelector.buttons = [{
+                type: 'month',
+                count: 1,
+                text: '1m'
+            }, {
+                type: 'month',
+                count: 3,
+                text: '3m'
+            }, {
+                type: 'month',
+                count: 6,
+                text: '6m'
+            }, {
+                type: 'year',
+                count: 1,
+                text: '1y'
+            }, {
+                type: 'all',
+                text: 'All'
+            }];
+          rangeSelector.inputEnabled = false;
+        }
         var options = {
           yAxis: yAxis,
           title: title,
@@ -229,7 +251,10 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
         Highcharts.stockChart(containerID, options);
       }
     });
-    app.controller('searchCtrl', function($scope, $http, $interval, ResultDisplayer){
+    app.controller('searchCtrl', function($scope, $http, $interval, $window, ResultDisplayer){
+      $(window).resize(function() {
+        $scope.check_is_mobile();
+      });
       
       $scope.search = {
         symbolInput : "",
@@ -282,6 +307,7 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
         detail_table: ""
       };
       $scope.view = {
+        isMobile: false,
         show_favorite: true,
         tabs: [
           {type: "Price", href: "#price", active: "active"},
@@ -478,7 +504,7 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
             } else {
               $scope.error.isHistoryError = false;
               $scope.ready.isHistoryReady = true;
-              ResultDisplayer.create_history_chart(responseData);
+              ResultDisplayer.create_history_chart(responseData, $scope.view.isMobile);
             }
           } else {
             // server to api error
@@ -663,6 +689,13 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
         }
       }
       
+      $scope.check_is_mobile = function() {
+        if($window.innerWidth < 768)
+          $scope.view.isMobile = true;
+        else 
+          $scope.view.isMobile = false;
+      }
+      
       // get favorite list when starting
       var favorite_list = $scope.get_favorite_from_local();
       // initialize stockData with favorited symbols as keys
@@ -674,6 +707,7 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
       }
       // get stock data for these symbols
       $scope.refresh_favorite();
+      $scope.check_is_mobile();
     });
       $(document).ready(function() {
         $('#toggle-refresh').change(function() {
