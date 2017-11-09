@@ -67,7 +67,7 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
         var series = [];
         if(indicatorType == "Price") {
           var seriesDataPrice = {
-            name: indicatorData.symbol,
+            name: "Price",
             color: "rgba(0,0,220,0.8)",
             fillColor: "rgba(0,0,255,0.2)",
             data: indicatorData.yValue.price,
@@ -77,7 +77,7 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
             type: "area", 
           };
           var seriesDataVolume = {
-            name: indicatorData.symbol + " Volume",
+            name: "Volume",
             color: "red",
             data: indicatorData.yValue.volume,
             type: "column",

@@ -93,14 +93,21 @@ hr{
   overflow: hidden;
 }
 
-.my-panel-child.ng-hide-remove {
+.my-panel-detail.ng-hide-remove {
   transform: translateX(-100%);
   transition: all 0.5s;
 }
-
-.my-panel-child.ng-hide-remove.ng-hide-remove-active {
+.my-panel-detail.ng-hide-remove.ng-hide-remove-active {
   transform: translateX(0px);
 }
+.my-panel-favorite.ng-hide-remove {
+  transform: translateX(100%);
+  transition: all 0.5s;
+}
+.my-panel-favorite.ng-hide-remove.ng-hide-remove-active {
+  transform: translateX(0px);
+}
+
 .is-favorited-star {
   color: rgb(243,215,95);
 }
@@ -112,6 +119,6 @@ md-autocomplete button, md-autocomplete md-progress-linear {
   display: none;
 }
 .container {
-  padding-left: 0px;
-  padding-right: 0px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
