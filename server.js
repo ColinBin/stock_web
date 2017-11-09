@@ -15,9 +15,10 @@ var xml_parser = require('xml2js').parseString;
 var alpha_api_key = "N8WQUGU3FLDHHNUV";
 var alpha_base_url = "https://www.alphavantage.co/query"; 
 var news_base_url = "https://seekingalpha.com/api/sa/combined/";
-var markit_base_url = "http://dev.markitondemand.com/MODApis/Api/v2/Lookup/json"
+var markit_base_url = "http://dev.markitondemand.com/MODApis/Api/v2/Lookup/json";
+var maxRetryTimes = 2;
 
-var port = process.env.PORT || 3000
+var port = process.env.PORT || 3000;
 
 // html file name
 var stock_html_file_name = "/stock.html";
@@ -32,15 +33,15 @@ app.get('/', function(req, res) {
       if(type == "news") {
         retrieve_and_send_news(res, symbol, req.url);
       } else if(type == "stock_detail"){
-        retrieve_and_send_stock_detail(res, symbol, req.url);
+        retrieve_and_send_stock_detail(res, symbol, req.url, maxRetryTimes);
       } else if(type == "indicator") {
         if("option" in req.query) {
-          retrieve_and_send_indicator(res, symbol, req.query.option, req.url);
+          retrieve_and_send_indicator(res, symbol, req.query.option, req.url, maxRetryTimes);
         } else {
           res.send({"msg" : "Bad Request(No indicator type provided)"});
         }
       } else if(type == "stock_history") {
-        retrieve_and_send_stock_history(res, symbol, req.url);
+        retrieve_and_send_stock_history(res, symbol, req.url, maxRetryTimes);
       } else if(type == 'autocomplete') {
         retrieve_and_send_suggestions(res, symbol, req.url);
       }
@@ -73,18 +74,22 @@ function retrieve_and_send_suggestions(res, input, requestUrl) {
   }, function(error, response, body) {
     log(requestUrl + " DONE " + response.statusCode);
     markit_result.status_code = response.statusCode;
-    try {
-      var parsedData = JSON.parse(body);
-      var formatted_data = [];
-      for(var index = 0; index < parsedData.length && index < 5; ++index) {
-        formatted_data.push({
-          symbol: parsedData[index].Symbol,
-          full_description: parsedData[index].Symbol + " - " + parsedData[index].Name + " (" + parsedData[index].Exchange + ")",
-        });
+    if(response.statusCode == 200) {
+      try {
+        var parsedData = JSON.parse(body);
+        var formatted_data = [];
+        for(var index = 0; index < parsedData.length && index < 5; ++index) {
+          formatted_data.push({
+            symbol: parsedData[index].Symbol,
+            full_description: parsedData[index].Symbol + " - " + parsedData[index].Name + " (" + parsedData[index].Exchange + ")",
+          });
+        }
+        markit_result.data = formatted_data;
+      } catch(err) {
+        log(err);
+        markit_result.data = null;
       }
-      markit_result.data = formatted_data;
-    } catch(err) {
-      log(err);
+    } else {
       markit_result.data = null;
     }
     res.send(markit_result);
@@ -92,7 +97,7 @@ function retrieve_and_send_suggestions(res, input, requestUrl) {
 }
 
 // get full size stock value (at most 1000)
-function retrieve_and_send_stock_history(res, symbol, requestUrl) {
+function retrieve_and_send_stock_history(res, symbol, requestUrl, remainRequestTimes) {
   var stock_history_result = {};
   var params = {
     "function" : "TIME_SERIES_DAILY",
@@ -107,19 +112,31 @@ function retrieve_and_send_stock_history(res, symbol, requestUrl) {
   }, function(error, response, body) {
     log(requestUrl + " DONE WITH " + response.statusCode);
     stock_history_result.status_code = response.statusCode;
-    try {
-      var parsedData = JSON.parse(body);
-      if(Object.keys(parsedData).length == 0 || "Error Message" in parsedData) {
+    if(response.statusCode == 200) {
+      try {
+        var parsedData = JSON.parse(body);
+        if(Object.keys(parsedData).length == 0 || "Error Message" in parsedData) {
+          // if symbol is invalid, block retries
+          if("Error Message" in parsedData)
+            remainRequestTimes = 0;
+          stock_history_result.data = null;
+        } else {
+          stock_history_result.data = get_stock_history(parsedData);
+        }
+      } catch(err) {
+        log(err);
         stock_history_result.data = null;
-      } else {
-        stock_history_result.data = get_stock_history(parsedData);
       }
-    } catch(err) {
-      log(err);
+    } else {
       stock_history_result.data = null;
     }
     
-    res.send(stock_history_result);
+    if(stock_history_result.data == null && remainRequestTimes > 0) {
+      log("Retry for " + requestUrl);
+      retrieve_and_send_stock_history(res, symbol, requestUrl, remainRequestTimes - 1);
+    } else {
+      res.send(stock_history_result);   
+    }
   });
 }
 
@@ -141,7 +158,7 @@ function get_stock_history(full_stock_history_data) {
 }
 
 // use alpha api to indicator data for one some type
-function retrieve_and_send_indicator(res, symbol, indicator_type, requestUrl) {
+function retrieve_and_send_indicator(res, symbol, indicator_type, requestUrl, remainRequestTimes) {
   var indicator_url = alpha_base_url + "?";
   if(indicator_type == 'Price') {
     indicator_url += "function=TIME_SERIES_DAILY&symbol=" + symbol + "&outputsize=full&apikey=" + alpha_api_key;
@@ -178,6 +195,9 @@ function retrieve_and_send_indicator(res, symbol, indicator_type, requestUrl) {
       try {
         var parsedData = JSON.parse(body);
         if(Object.keys(parsedData).length == 0 || !('Meta Data' in parsedData)) {
+          // if symbol is invalid block retries
+          if("Error Message" in parsedData)
+            remainRequestTimes = 0;
           indicator_result.data = null;
         } else {
           indicator_result.data = get_trimmed_indicator_data(indicator_type, parsedData);
@@ -186,9 +206,17 @@ function retrieve_and_send_indicator(res, symbol, indicator_type, requestUrl) {
         log(err);
         indicator_result.data = null;
       }
+    } else {
+      indicator_result.data = null;
     }
-    res.send(indicator_result);
-  })
+    // if failed and is permitted to retry,
+    if(indicator_result.data == null && remainRequestTimes > 0) {
+      log("Retry for " + requestUrl);
+      retrieve_and_send_indicator(res, symbol, indicator_type, requestUrl, remainRequestTimes - 1);
+    } else {
+      res.send(indicator_result);
+    }
+  });
 }
 
 function get_trimmed_indicator_data(indicator_type, full_indicator_data) {
@@ -253,7 +281,7 @@ function get_trimmed_indicator_data(indicator_type, full_indicator_data) {
   return trimmed_indicator_data;
 }
 
-function retrieve_and_send_stock_detail(res, symbol, requestUrl) {
+function retrieve_and_send_stock_detail(res, symbol, requestUrl, remainRequestTimes) {
   var stock_detail_result = {};
   var params = {
     "function" : "TIME_SERIES_DAILY",
@@ -267,19 +295,31 @@ function retrieve_and_send_stock_detail(res, symbol, requestUrl) {
   }, function(error, response, body) {
     log(requestUrl + " DONE WITH " + response.statusCode);
     stock_detail_result.status_code = response.statusCode;
-    try {
-      var parsedData = JSON.parse(body);
-      if(Object.keys(parsedData).length == 0 || "Error Message" in parsedData) {
+    if(response.statusCode == 200) {
+      try {
+        var parsedData = JSON.parse(body);
+        if(Object.keys(parsedData).length == 0 || "Error Message" in parsedData) {
+          // if request symbol is invalid, block retries
+          if("Error Message" in parsedData)
+            remainRequestTimes = 0;
+          stock_detail_result.data = null;
+        } else {
+          stock_detail_result.data = get_stock_info(parsedData);
+        }
+      } catch(err) {
+        log(err);
         stock_detail_result.data = null;
-      } else {
-        stock_detail_result.data = get_stock_info(parsedData);
       }
-    } catch(err) {
-      log(err);
+    } else {
       stock_detail_result.data = null;
     }
-   
-    res.send(stock_detail_result);
+    // if fail to fetch data and is permitted to retry
+    if(stock_detail_result.data == null && remainRequestTimes > 0) {
+      log("Retry for " + requestUrl);
+      retrieve_and_send_stock_detail(res, symbol, requestUrl, remainRequestTimes - 1);
+    } else {
+      res.send(stock_detail_result);
+    }
   });
 }
 
