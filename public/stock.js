@@ -546,10 +546,17 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
           async: true
         };
         var exportUrl = 'http://export.highcharts.com/';
-        $.post(exportUrl, data, function(data) {
-            exportUrl += data;
+        $http({
+          url: "/",
+          method: "POST",
+          data: data
+        }).then(function(response){
+          var responseJson = response.data;
+          if(responseJson.status_code == 200 && responseJson.image_identity != null) {
+            var imageIndentity = responseJson.image_identity;
+            exportUrl += imageIndentity;
             FB.ui({
-              app_id: 1884682165182321, 
+              app_id: 126511018033797, 
               method: 'feed',
               display: 'popup',
               picture: exportUrl,
@@ -560,7 +567,25 @@ var app = angular.module('searchStock', ['ngSanitize', 'ngAnimate', 'ngMaterial'
                 alert("Not Posted");
               }
             }); 
+          }
+        }, function(error_response) {
+          
         });
+//        $.post(exportUrl, data, function(data) {
+//            exportUrl += data;
+//            FB.ui({
+//              app_id: 1884682165182321, 
+//              method: 'feed',
+//              display: 'popup',
+//              picture: exportUrl,
+//            }, (response) => {
+//              if (response && !response.error_message) {
+//                alert("Posted Successfully");
+//              } else {
+//                alert("Not Posted");
+//              }
+//            }); 
+//        });
       }
       $scope.extract_for_favorite = function(stock_detail_data) {
         var arrowUrl = (parseFloat(stock_detail_data.change) >= 0) ? "http://cs-server.usc.edu:45678/hw/hw8/images/Up.png" : "http://cs-server.usc.edu:45678/hw/hw8/images/Down.png";

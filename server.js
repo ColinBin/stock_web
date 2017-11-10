@@ -4,6 +4,10 @@ const app = express();
 // to serve static files such as the css
 app.use(express.static('public'));
 
+var bodyParser = require('body-parser');
+app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+
 var moment = require('moment-timezone');
 var fs = require('fs');
 var path = require('path');
@@ -11,11 +15,13 @@ var dateformat = require('dateformat');
 var request = require('request');
 var xml_parser = require('xml2js').parseString;
 
+
 // api related
 var alpha_api_key = "N8WQUGU3FLDHHNUV";
 var alpha_base_url = "https://www.alphavantage.co/query"; 
 var news_base_url = "https://seekingalpha.com/api/sa/combined/";
 var markit_base_url = "http://dev.markitondemand.com/MODApis/Api/v2/Lookup/json";
+var export_url = 'http://export.highcharts.com/';
 var maxRetryTimes = 2;
 
 var port = process.env.PORT || 3000;
@@ -53,6 +59,28 @@ app.get('/', function(req, res) {
     log("Stock html file served");
   }
 })
+
+app.post("/", function(req, res) {
+  var data = req.body;
+  request.post({url: export_url, form: data}, function(error, response, body) {
+    log("Post for export DONE");
+    var export_result = {};
+    try {
+      export_result.status_code = response.statusCode;
+      if(response.statusCode == 200) {
+        export_result.image_identity = body;
+        res.send(export_result);
+      } else {
+        export_result.image_identity = null;
+        res.send(export_result);
+      }
+    } catch(err) {
+      export_result.status_code = 404;
+      res.send(export_result);
+    }
+  })
+});
+
 
 app.listen(port, function() {
   log("Listening on port " + port);
