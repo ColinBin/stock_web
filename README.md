@@ -1,4 +1,9 @@
+# Demo
+
+[AWS Elastic Beanstalk](http://stock-app-binlyu.us-east-1.elasticbeanstalk.com/)
+
 # Skill Set
+
 Uses **Bootstrap** for responsive design, **AngularJS**, jQuery for front-end logic, **NodeJS** for back-end logic.
 
 # Features
@@ -16,4 +21,3 @@ Uses **Bootstrap** for responsive design, **AngularJS**, jQuery for front-end lo
 [Alpha Vantage](https://www.alphavantage.co/) for real-time stock information.  
 [SeekingAlpha](https://seekingalpha.com/) for recent stock news.  
 [Facebook Sharing](https://developers.facebook.com/products/sharing) for sharing charts on facebook.  
-
