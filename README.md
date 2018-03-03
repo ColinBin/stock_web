@@ -1,7 +1,3 @@
-# Demo
-
-[AWS Elastic Beanstalk](http://stock-app-binlyu.us-east-1.elasticbeanstalk.com/)
-
 # Skill Set
 
 Uses **Bootstrap** for responsive design, **AngularJS**, jQuery for front-end logic, **NodeJS** for back-end logic.
